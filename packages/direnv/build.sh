@@ -8,11 +8,6 @@ TERMUX_PKG_SHA256=fa539c63034b6161d8238299bb516dcec79e8905cd43ff2b9559ad6bf047cc
 TERMUX_PKG_AUTO_UPDATE=true
 TERMUX_PKG_BUILD_IN_SRC=true
 
-termux_step_make() {
+termux_step_pre_configure() {
  	termux_setup_golang
-	make
-}
-
-termux_step_make_install() {
-	make install PREFIX=$TERMUX_PREFIX
 }
