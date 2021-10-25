@@ -41,7 +41,7 @@ BINARYEN_TGZ_SHA256=093bf206d34a7e239b4ae9dd9e9f393099622cebaa781d859b0f85e23057
 LLVM_BUILD_ARGS="
 -DCMAKE_BUILD_TYPE=MinSizeRel
 -DCMAKE_CROSSCOMPILING=ON
--DCMAKE_INSTALL_PREFIX=$TERMUX_PREFIX/opt/emscripten-llvm
+-DCMAKE_INSTALL_PREFIX=$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten-llvm
 
 -DDEFAULT_SYSROOT=$(dirname $TERMUX_PREFIX)
 -DGENERATOR_IS_MULTI_CONFIG=ON
@@ -76,7 +76,7 @@ LLVM_BUILD_ARGS="
 # https://github.com/WebAssembly/binaryen/blob/main/CMakeLists.txt
 BINARYEN_BUILD_ARGS="
 -DCMAKE_BUILD_TYPE=MinSizeRel
--DCMAKE_INSTALL_PREFIX=$TERMUX_PREFIX/opt/emscripten-binaryen
+-DCMAKE_INSTALL_PREFIX=$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten-binaryen
 "
 
 termux_step_post_get_source() {
@@ -153,8 +153,7 @@ termux_step_make() {
 
 termux_step_make_install() {
 	# skip using Makefile which does host npm install, tar archive and extract steps
-	rm -fr "$TERMUX_PREFIX/opt/emscripten"
-	./tools/install.py "$TERMUX_PREFIX/opt/emscripten"
+	./tools/install.py "$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten"
 
 	# first run generates .emscripten and exits immediately
 	rm -f "$TERMUX_PKG_SRCDIR/.emscripten"
@@ -164,29 +163,34 @@ termux_step_make_install() {
 	sed -i .emscripten -e "s|^BINARYEN_ROOT.*|BINARYEN_ROOT = '$TERMUX_PREFIX/opt/emscripten-binaryen' # directory|"
 	sed -i .emscripten -e "s|^NODE_JS.*|NODE_JS = '$TERMUX_PREFIX/bin/node' # executable|"
 	grep "$TERMUX_PREFIX" "$TERMUX_PKG_SRCDIR/.emscripten"
-	install -Dm644 "$TERMUX_PKG_SRCDIR/.emscripten" "$TERMUX_PREFIX/opt/emscripten/.emscripten"
+	mkdir -p "$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX"/opt/emscripten
+	install -Dm644 "$TERMUX_PKG_SRCDIR/.emscripten" \
+		"$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX"/opt/emscripten/.emscripten
 
 	# https://github.com/emscripten-core/emscripten/issues/9098 (fixed in 2.0.17)
 	cat <<- EOF > "$TERMUX_PKG_TMPDIR/emscripten.sh"
 	#!$TERMUX_PREFIX/bin/sh
 	export PATH=\$PATH:$TERMUX_PREFIX/opt/emscripten
 	EOF
-	install -Dm644 "$TERMUX_PKG_TMPDIR/emscripten.sh" "$TERMUX_PREFIX/etc/profile.d/emscripten.sh"
+	mkdir -p "$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX"/etc/profile.d
+	install -Dm644 "$TERMUX_PKG_TMPDIR/emscripten.sh" \
+		"$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/etc/profile.d/emscripten.sh"
 
 	# remove unneeded files
 	for tool in clang-{check,cl,cpp,extdef-mapping,format,func-mapping,import-test,offload-bundler,refactor,rename,scan-deps} \
 		lld-link ld.lld ld64.lld llvm-lib ld64.lld.darwin{new,old}; do
-		rm -f "$TERMUX_PREFIX/opt/emscripten-llvm/bin/$tool"
+		rm -f "$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten-llvm/bin/$tool"
 	done
-	rm -f $TERMUX_PREFIX/opt/emscripten-llvm/lib/libclang.so*
-	rm -fr "$TERMUX_PREFIX/opt/emscripten-llvm/share"
+	rm -f $TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten-llvm/lib/libclang.so*
+	rm -fr "$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten-llvm/share"
 
 	# termux_step_install_license also handles LICENSE file
-	rm -f "$TERMUX_PREFIX/opt/emscripten/LICENSE"
+	rm -f "$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten/LICENSE"
 
 	# add useful tools not installed by LLVM_INSTALL_TOOLCHAIN_ONLY=ON
 	for tool in FileCheck llc llvm-{as,dis,link,mc,nm,objdump,readobj,size,dwarfdump,dwp} opt; do
-		install -Dm755 "$TERMUX_PKG_CACHEDIR/build-llvm/bin/$tool" "$TERMUX_PREFIX/opt/emscripten-llvm/bin/$tool"
+		install -Dm755 "$TERMUX_PKG_CACHEDIR/build-llvm/bin/$tool" \
+			"$TERMUX_PKG_MASSAGEDIR/$TERMUX_PREFIX/opt/emscripten-llvm/bin/$tool"
 	done
 }
 
